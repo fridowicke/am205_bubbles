@@ -3,16 +3,14 @@ from scipy.spatial import Delaunay
 from math import *
 import matplotlib.pyplot as plt
 
-#Use Delaunay to tesselate a circle
+#Use Delaunay to tesselate a Cylinder
 X1 = np.linspace(0, 2*pi,10)
 X2 = np.linspace(0,1,10)
 circles = np.array([[(cos(x1), sin(x1), x2) for x1 in X1]for x2 in X2])
 circle = np.vstack(circles)
-print(circle.shape)
 #circle=np.array([[0,0,0,],[0,0,1],[0,1,1],[1,0,1],[1,1,1],[0,0,1],[0,1,0],[1,1,0],[1,0,0]])
 tri_cil = Delaunay(circle)
 
-#print(tri_cil.simplices)
 
 
 
