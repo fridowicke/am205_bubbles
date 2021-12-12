@@ -28,20 +28,20 @@ def axis_dr(Data, colors, plot=False):
     for idx, point in enumerate(Data):
         cyl_data[idx] = point[2]*point[:2]
     if plot:
-        plot_dr(Data, color)
+        plot_dr(Data, cyl_data, colors)
     print(cyl_data.shape)
 
     return cyl_data
 
 #Plot the DR
-def plot_dr(Data, colors):
+def plot_dr(Data3, Data2, colors):
 
     fig = plt.figure()
     ax = fig.add_subplot(211, projection="3d")
-    ax.scatter(Data[:, 0], Data[:, 1], Data[:, 2], c=col, cmap=plt.cm.Spectral, s=5)
+    ax.scatter(Data3[:, 0], Data3[:, 1], Data3[:, 2], c=colors, cmap=plt.cm.Spectral, s=5)
     ax.set_title("Original data")
     ax = fig.add_subplot(212)
-    ax.scatter(X_r[:, 0], X_r[:, 1], c=cyl[:,2], cmap=plt.cm.Spectral, s=5)
+    ax.scatter(Data2[:, 0], Data2[:, 1], c=colors, cmap=plt.cm.Spectral, s=5)
     plt.axis("tight")
     plt.xticks([]), plt.yticks([])
     plt.title("Projected data")
