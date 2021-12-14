@@ -2,13 +2,18 @@ import numpy as np
 import numpy.linalg as la
 from math import *
 import matplotlib.pyplot as plt
+from scipy.spatial import Delaunay
+import dim_red
 
-def make_cylinder(h,r,nh=100,nv=100):
+def make_cylinder(h,r,nh=100,nv=100, plot=False):
 
     X1 = np.linspace(0, 2*pi,nh)
     X2 = np.linspace(0,h,nv)
     circles = np.array([[(r*cos(x1), r*sin(x1), x2) for x1 in X1]for x2 in X2])
-    return np.vstack(circles)
+    points=np.vstack(circles)
+    X_r=dim_red.axis_dr(points, points[:,-1], plot=plot)
+    return points, Delaunay(X_r).simplices
+    #return np.vstack(circles)
 
 def make_tube(bottom_shape='circle', bottom_size=1, top_shape='circle', top_size=1, nh=16,nv=16):
     bottom=make_shape(bottom_shape, bottom_size, nh)
@@ -20,7 +25,8 @@ def make_tube(bottom_shape='circle', bottom_size=1, top_shape='circle', top_size
         t=top[idx1]
         for idx2 in range(nv):
             points[idx1*nh+idx2]=b+(idx2/nv)*(t-b)
-    return points
+    X_r=dim_red.axis_dr(points, points[:,-1], plot=True)
+    return points, Delaunay(X_r).simplices
 
 
 def make_shape(shape, size, n):
@@ -57,7 +63,7 @@ def make_shape(shape, size, n):
 
     return X[X[:,0]<np.inf]
 
-def make_fo(width=10, height=10,r=[0.4,0.4,0.4], h=[1,-1,1], pos=[[5,4],[5,6],[4,5]]):
+def make_fo(width=10, height=5,r=[1,1], h=[1,-1], pos=[[2.5,2.5],[7.5,2.5]]):
     r, h, pos = np.array(r), np.array(h), np.array(pos)
     ranges=np.zeros(r.shape[0])
     for idx, point in enumerate(pos):
@@ -87,7 +93,7 @@ def make_fo(width=10, height=10,r=[0.4,0.4,0.4], h=[1,-1,1], pos=[[5,4],[5,6],[4
         R=np.square(np.linspace(sqrt(r[idx]),sqrt(ranges[idx]),n))
         circles1 = np.array([[(x2*cos(x1)+point[0], x2*sin(x1)+point[1]) for x1 in X1]for x2 in R])
         points.append(np.vstack(circles1))
-        print(np.vstack(circles1).shape,"-------------")
+        #print(np.vstack(circles1).shape,"-------------")
     X = []
     for idx1 in np.linspace(0,width,n):
         for idx2 in np.linspace(0,height,n):
@@ -97,17 +103,17 @@ def make_fo(width=10, height=10,r=[0.4,0.4,0.4], h=[1,-1,1], pos=[[5,4],[5,6],[4
                     add=False
             if add:
                 X.append([idx1,idx2])
-    print(np.array(X).T.shape)
+    #print(np.array(X).T.shape)
     points.append(np.array(X))
     circle=np.vstack(points)
-    print(circle.shape)
+    #print(circle.shape)
     ret=[]
     for point in circle:
         x = point[0]
         y = point[1]
         ret.append([point[0],point[1], get_h(point)])
     #print(np.array(X).shape)
-    return np.array(ret)
+    return np.array(ret), Delaunay(ret[:,0:2]).simplices
 
 
 

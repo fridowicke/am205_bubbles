@@ -12,9 +12,10 @@ X_r=dim_red.axis_dr(cyl, cyl[:,-1], plot=True)
 
 #Triangularization
 tri_cil = Delaunay(X_r)
+simplices=tri_cil.simplices
 #Tri_cil.simplices: nx3 matrix containing three indices for
 #three points describing a triangle
-print(tri_cil.simplices)
+print(simplices)
 
 #Visualization
-make_shapes.vis_triang_3d(tri_cil.simplices, cyl)
+make_shapes.vis_triang_3d(simplices, cyl)
