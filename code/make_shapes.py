@@ -57,7 +57,7 @@ def make_shape(shape, size, n):
 
     return X[X[:,0]<np.inf]
 
-def make_fo(width=10, height=10,r=[1,1,0.5,0.5], h=[1,-1,-2,4], pos=[[2.5,2.5],[7.5,2.5],[2.5,7.5],[7.5,7.5]]):
+def make_fo(width=10, height=10,r=[0.4,0.4,0.4], h=[1,-1,1], pos=[[5,4],[5,6],[4,5]]):
     r, h, pos = np.array(r), np.array(h), np.array(pos)
     ranges=np.zeros(r.shape[0])
     for idx, point in enumerate(pos):
@@ -79,7 +79,7 @@ def make_fo(width=10, height=10,r=[1,1,0.5,0.5], h=[1,-1,-2,4], pos=[[2.5,2.5],[
         #min_dist = np.min((point[0],point[1], width-point[0], height-point[1]))
         #value = hl*rl*(1/la.norm(point-posl)) + hr*rr*(1/la.norm(point-posr))
         #return min_dist*value
-    n=40
+    n=20
     max = np.max([width,height])
     X1 = np.linspace(0, 2*pi,n)
     points=[]

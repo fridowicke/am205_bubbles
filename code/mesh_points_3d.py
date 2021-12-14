@@ -10,12 +10,12 @@ import dim_red
 
 cyl=(make_shapes.make_cylinder(1,1, nh=30, nv=30))
 #cyl=make_shapes.make_tube(top_shape='square', bottom_size=0.5, top_size=2)
-#cyl=make_shapes.make_fo()
+cyl=make_shapes.make_fo()
 #X, color = datasets.make_swiss_roll(n_samples=1500)
 
 
 X_r=dim_red.axis_dr(cyl, cyl[:,-1], plot=True)
-#X_r=cyl[:,:2]
+X_r=cyl[:,:2]
 tri_cil = Delaunay(X_r)
 #plt.triplot(X_r[:,0], X_r[:,1], tri_cil.simplices)
 #plt.show()
