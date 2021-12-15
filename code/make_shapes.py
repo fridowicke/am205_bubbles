@@ -5,15 +5,57 @@ import matplotlib.pyplot as plt
 from scipy.spatial import Delaunay
 import dim_red
 
-def make_cylinder(h,r,nh=100,nv=100, plot=False):
+
+def get_sphere(plot=True):
+    sphere = [x.split(' ') for x in open(f"./Test_sphere-2.obj").readlines()]
+    faces    = []
+    vertices = []
+
+    for element in sphere:
+        #print(element)
+        if element[0] =='f':
+            vals = [x for x in element[1:4]]
+            ap=[]
+            for v in vals:
+                if v[1]=='/':
+                    ap.append(int(float(v[0])))
+                elif v[2]=='/':
+                    ap.append(int(float(v[0:2])))
+                elif v[3]=='/':
+                    ap.append(int(float(v[0:3])))
+            faces.append(ap)
+        if element[0] == 'v':
+            vertices.append([float(x)-48 for x in element[1:4]])
+    print(faces)
+    vertices=np.array(vertices)
+    if plot:
+        vis_triang_3d(vf)
+        fig = plt.figure(figsize=plt.figaspect(0.5))
+        ax = fig.add_subplot(1, 2, 1, projection='3d')
+        ax.plot(vertices[:,0],vertices[:,1],vertices[:,2])
+        plt.show()
+
+def make_cylinder(h,r,nh=11,nv=11, plot=False):
 
     X1 = np.linspace(0, 2*pi,nh)
     X2 = np.linspace(0,h,nv)
     circles = np.array([[(r*cos(x1), r*sin(x1), x2) for x1 in X1]for x2 in X2])
     points=np.vstack(circles)
     X_r=dim_red.axis_dr(points, points[:,-1], plot=plot)
-    return points, Delaunay(X_r).simplices
-    #return np.vstack(circles)
+    simplices=[]
+    n=nh*nv
+    for idx in range(n):
+        if False:
+            simplices.append([idx, idx+1, idx+nv])
+        if idx+nh<n:
+            if (idx%nh)%1==0:
+                simplices.append([idx, idx+1, idx+nv])
+                simplices.append([idx, idx+nv-1, idx+nv])
+    simplices=np.array(simplices)
+    if plot:
+        vis_triang_3d(simplices, points)
+    return points, simplices
+
 
 def make_tube(bottom_shape='circle', bottom_size=1, top_shape='circle', top_size=1, nh=16,nv=16):
     bottom=make_shape(bottom_shape, bottom_size, nh)
@@ -47,19 +89,6 @@ def make_shape(shape, size, n):
         for idx in range(0,int(n/8)):
             points.append([size,8*idx*size/n-size,0])
         return np.array(points)
-
-#def make_fo(width=10, height=5,rl=1,rr=1, hl=1,hr=-1, posl=[2.5,2.5], posr=[7.5,2.5], h=0.2):
-#    nx = int(width/h)
-#    ny = int(height/h)
-#    X = np.inf*np.ones((nx*ny, 3))
-#    for idx1 in range(nx):
-#        for idx2 in range(ny):
-#            point = h*np.array([idx1,idx2])
-#            min_dist = np.min((point[0],point[1], width-point[0], height-point[1]))
-#            value = hl*rl*(1/la.norm(point-posl)) + hr*rr*(1/la.norm(point-posr))
-#            #value = 2
-#            if la.norm(point-posl)>=rl and la.norm(point-posr)>=rr:
-#                X[ny*idx1+idx2,:] = np.array([point[0],point[1], min_dist*value])
 
     return X[X[:,0]<np.inf]
 
@@ -133,6 +162,9 @@ def vis_triang_3d(simplices, points):
 
     #Plot vertices
     for v in vertices:
-        ax.plot(v[:,0],v[:,1],v[:,2], color='orange', linewidth=1)
+        ax.plot(v[0:2,0],v[0:2,1],v[0:2,2], color='orange', linewidth=1)
+        ax.plot(v[1:3,0],v[1:3,1],v[1:3,2], color='green', linewidth=1)
+        ax.plot(v[[0,2],0],v[[0,2],1],v[[0,2],2], color='blue', linewidth=1)
+        #ax.plot(v[:,-1:-2:-1],v[:,-1:-2:-1],v[:,-1:-2:-1], color='orange', linewidth=1)
 
     plt.show()

@@ -4,23 +4,8 @@ from math import *
 from scipy.special import cotdg as cot
 import matplotlib.pyplot as plt
 import numpy.linalg as la
+from scipy.optimize import minimize
 
-#(nh*nv)x3 Matrix with the datapoints
-cyl, tri_cil = (make_shapes.make_cylinder(0.5,1, nh=60, nv=50, plot=True))
-boundaries1 = np.argwhere(cyl[:,2]==0).flatten()
-boundaries2 = np.argwhere(cyl[:,2]==0.5).flatten()
-boundaries = np.hstack((boundaries1, boundaries2)).flatten()
-print("boundaries",boundaries,"boundaries")
-
-#fo, tri_fo=make_shapes.make_fo()
-
-
-#Two-Dimensional Embedding (you do not need this)
-
-#Triangularization
-#print(tri_cil.simplices)
-#Visualization
-#make_shapes.vis_triang_3d(tri_cil.simplices, cyl)
 
 #Takes input with 3 points and calculates the angle
 def angle(X):
@@ -32,12 +17,15 @@ def angle(X):
     return angle
 
 #Get the Triangles that a given vertex is connected to
-def get_triangles(vertices, points):
+def get_triangles(points, vertices):
     triangles = [[] for idx in range(points.shape[0])]
     for x,y,z in vertices:
-        triangles[x].append([y,z])
-        triangles[y].append([x,z])
-        triangles[z].append([x,y])
+        if x==min([x,y,z]):
+            triangles[x].append([y,z])
+        elif y==min([x,y,z]):
+            triangles[y].append([x,z])
+        else:
+            triangles[z].append([x,y])
     return triangles
 
 #Compute the gradients
@@ -48,7 +36,10 @@ def compute_gradients(points, triangles):
         for q,r in triangles[point]: #number of adjacent triangles
             q, r = points[q], points[r]
             alpha, beta = angle([p,q,r]), angle([p,r,q])
-            Gradient_A += 1/2*(cot(alpha)*(p-q)+cot(beta)*(p-r))
+            if tan(alpha)!=0 and tan(beta)!=0:
+                Gradient_A += 1/2*(cot(alpha)*(p-q)+cot(beta)*(p-r))
+            else:
+                print("x")
         return Gradient_A
 
     gradients = np.zeros_like(points)
@@ -58,7 +49,7 @@ def compute_gradients(points, triangles):
     return gradients
 
 #Optimize the surface
-def opt_surface(points, triangles, boundary_points, epsilon = 0.01, plot_boundaries=True):
+def opt_surface(points, triangles, boundary_points, epsilon = 0.01, plot_boundaries=False):
 
     #Plot the Boundary conditions
     if plot_boundaries:
@@ -68,26 +59,26 @@ def opt_surface(points, triangles, boundary_points, epsilon = 0.01, plot_boundar
         ax.scatter(points[boundary_points][:,0],points[boundary_points][:,1],points[boundary_points][:,2])
         plt.show()
 
-    for idx in range(20):
+    for idx in range(30):
         print(idx)
         #Computing the Gradients
         grads=compute_gradients(points, triangles)
-
         #Removing too large gradients (not sure if that makes sense)
-        norms = np.array([la.norm(grad) for grad in grads])
-        grads[np.argwhere(norms>norms.mean())]=0
+        #norms = np.array([la.norm(grad) for grad in grads])
+        #grads[np.argwhere(norms>norms.mean())]=0
 
         #Reducing the size of the gradient and inverting
         grads= -epsilon*grads*(10/np.max(np.abs(grads)))
-        for idx1 in range(grads.shape[0]):
+        print(grads)
+        #for idx1 in range(grads.shape[0]):
             #print(la.norm(grads[idx])*np.array([-points[idx,0],-points[idx,1],0]))
-            grads[idx1] = la.norm(grads[idx1])*np.array([-points[idx1,0],-points[idx1,1],0])
+        #    grads[idx1] = la.norm(grads[idx1])*np.array([-points[idx1,0],-points[idx1,1],0])
         #Enforcing the boundary conditions
         grads[boundary_points]=0
 
         #Plotting
-        if idx%10==0:
-            make_shapes.vis_triang_3d(tri_cil, points)
+        if idx%100==200:
+            #make_shapes.vis_triang_3d(tri_cil, points)
             fig = plt.figure()
             ax = fig.add_subplot(projection='3d')
             ax.scatter(points[:,0],points[:,1],points[:,2])
@@ -102,26 +93,60 @@ def opt_surface(points, triangles, boundary_points, epsilon = 0.01, plot_boundar
 
     return points
 
-#Get the simplices, where edges above a tolerance (too long) are removed
-def get_simplices(points, s_init, tol=3):
-    s_final = []
-    for simplex in s_init:
-        x,y,z = points[simplex]
-        dist = np.array([la.norm(x-y),la.norm(y-z),la.norm(x-z)])
-        #print(np.max(dist))
-        if np.max(dist)<tol:
-            #print(np.max(dist))
-            s_final.append(simplex)
-    return np.array(s_final)
+def get_area(points, triangles):
+    area = np.zeros(len(triangles))
+    area=[]
+    for idx, triangle in enumerate(triangles):
+        for id in range(0):#range(len(triangle)):
+            t = [idx, triangle[id][0], triangle[id][1]]
+            x,y,z = points[t]
+            x1,x2,x3 = x
+            y1,y2,y3 = y
+            z1,z2,z3 = z
+            fig = plt.figure()
+            ax = fig.add_subplot(projection='3d')
+            v=np.array(points[t])
+            ax.plot(v[0:2,0],v[0:2,1],v[0:2,2], color='orange', linewidth=1)
+            ax.plot(v[1:3,0],v[1:3,1],v[1:3,2], color='green', linewidth=1)
+            ax.plot(v[[0,2],0],v[[0,2],1],v[[0,2],2], color='blue', linewidth=1)
 
-simplices = get_simplices(cyl, tri_cil)
-triangles =get_triangles(simplices, cyl)
-gradients = compute_gradients(cyl, triangles)
-#simplices = get_simplices(fo, tri_fo)
-#print(simplices.shape,fo.shape)
-#triangles =get_triangles(simplices, fo<)
-#gradients = compute_gradients(fo, triangles)
+            fig.suptitle(f"The area is {np.abs(x1*y2+x2*y3+x3*y1-y1*x2-y2*x3-y3*x1)/2}n\n,{t}")
+            ax.set_xlim3d(-1, 1)
+            ax.set_ylim3d(-1, 1)
+            ax.set_zlim3d(0, 1)
+            plt.show()
+    for idx, triangle in enumerate(triangles):
+        for id in range(len(triangle)):
+            t = [idx, triangle[id][0], triangle[id][1]]
+            x,y,z = points[t]
+            x1,x2,x3 = x
+            y1,y2,y3 = y
+            z1,z2,z3 = z
+            p1 = y-x
+            p2 = z-x
+            u = np.cross(p1,p2)
+            area.append(la.norm(u)/2)
+    print(np.sum(np.array(area)))
+    return np.sum(np.array(area))
 
-opt = opt_surface(cyl, triangles, boundaries)
-#opt = opt_surface(fo, triangles, boundaries)
-#make_shapes.vis_triang_3d(simplices, cyl)
+def get_area_boundaries(points, triangles, boundaries, boundarie_values):
+    points=points.reshape([-1,3])
+    points[boundaries] = boundarie_values
+    return get_area(points, triangles)
+
+
+
+cyl, tri_cil = (make_shapes.make_cylinder(1,1))
+boundaries1 = np.argwhere(cyl[:,2]==0).flatten()
+boundaries2 = np.argwhere(cyl[:,2]==1).flatten()
+boundaries = np.hstack((boundaries1, boundaries2)).flatten()
+boundarie_values=cyl[boundaries]
+triangles =get_triangles(cyl, tri_cil)
+triangles_opt=minimize(get_area_boundaries, cyl, args=(triangles, boundaries, boundarie_values))
+
+
+#compute_gradients(cyl, triangles)
+#print(get_area(cyl, triangles),"SURFACE AREA")
+#gradients = compute_gradients(cyl, tri_cil)
+#make_shapes.vis_triang_3d(tri_cil, cyl)
+#opt = opt_surface(cyl, triangles, boundaries)
