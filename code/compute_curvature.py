@@ -5,7 +5,7 @@ from scipy.special import cotdg as cot
 import matplotlib.pyplot as plt
 import numpy.linalg as la
 from scipy.optimize import minimize
-
+import plot_povray
 
 #Takes input with 3 points and calculates the angle
 def angle(X):
@@ -132,16 +132,25 @@ def get_area(points, triangles):
 def get_area_boundaries(points, triangles, boundaries, boundarie_values):
     points=points.reshape([-1,3])
     points[boundaries] = boundarie_values
+    #LEON HERE:
+    #plot_povray.function(whatever)
+    #points: nx3 of the points
+    #triangles -> triangles
+    #boundarie_values: boundary points
+    #boundaries: indices of the boundary points
+    #glob: identifier
+    glob+=1
     return get_area(points, triangles)
 
 
-
+glob=0
 cyl, tri_cil = (make_shapes.make_cylinder(1,1))
 boundaries1 = np.argwhere(cyl[:,2]==0).flatten()
 boundaries2 = np.argwhere(cyl[:,2]==1).flatten()
 boundaries = np.hstack((boundaries1, boundaries2)).flatten()
 boundarie_values=cyl[boundaries]
 triangles =get_triangles(cyl, tri_cil)
+# LEON: Here the optimization takes place
 triangles_opt=minimize(get_area_boundaries, cyl, args=(triangles, boundaries, boundarie_values))
 
 
