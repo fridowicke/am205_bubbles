@@ -36,3 +36,12 @@ def get_curve(X1=[0,1],X2=[1,1],a_init=0.5, b_init=0.5, X=np.linspace(0,1,1000),
         plt.show()
 
     return Y
+
+def get_min_surface(h=1,r=1, n_samples=100000000):
+    X1=[0,r]
+    X2=[h,r]
+    X = np.linspace(0,h,n_samples)
+    vals = get_curve(X1=X1,X2=X2,X=X)
+    sum = np.sum(vals)
+    surface = 2*pi*sum*h/n_samples
+    return surface

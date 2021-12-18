@@ -1,6 +1,4 @@
-#
-#
-#
+import time
 import make_shapes
 import numpy as np
 from math import *
@@ -64,7 +62,7 @@ def compute_gradients(points, triangles):
 
 #Optimize the surface
 def opt_surface(points, triangles, boundary_points, tol=1e-06, plot_opt=True, plot_gradient=True, n_iter=10000):
-
+    t0=time.time()
     #Convert the triangles to the Format used in Rendering
     simplices = convert_tri_simplices(triangles)
     areas=[]
@@ -129,7 +127,7 @@ def opt_surface(points, triangles, boundary_points, tol=1e-06, plot_opt=True, pl
                 ax.scatter(opt[:,0],opt[:,1],opt[:,2], color='green')
             plt.savefig(f"./plots/Pointcloud and Optimal Solution after {idx} iterations", dpi=1000)
 
-        if idx==0:
+        if idx==1:
             fig = plt.figure()
             ax = fig.gca(projection='3d')
             ax.quiver(points[:,0],points[:,1],points[:,2],grads[:,0],grads[:,1],grads[:,2])
@@ -137,15 +135,12 @@ def opt_surface(points, triangles, boundary_points, tol=1e-06, plot_opt=True, pl
             plt.savefig("./plots/Gradients.png", dpi=1000)
 
         if np.abs(eta)<tol:
-            return points, np.array(areas), idx
-
-
-
+            return points, np.array(areas), idx, time.time()-t0
 
         #Updating the points
         points=points+grads
 
-    return points, np.array(areas), idx
+    return points, np.array(areas), idx, time.time()-t0
 
 def grad_area(epsilon, gradient, points, triangles):
     return get_area(points+epsilon*gradient, triangles)
@@ -163,7 +158,9 @@ def get_area(points, triangles):
             p2 = z-x
             u = np.cross(p1,p2)
             area.append(la.norm(u)/2)
-    return np.sum(np.array(area)/3)
+            ret = np.sum(np.array(area)/3)
+            #print(ret)
+    return ret
 
 def get_area_boundaries(points, triangles, boundaries, boundarie_values):
     points=points.reshape([-1,3])
@@ -180,11 +177,37 @@ def convert_tri_simplices(triangles):
             simplices.append([idx1,t[0],t[1]])
     return simplices
 
+def opt_nograd(points, triangles, boundaries):
+    #print(triangles)
+    t0=time.time()
+    n = points.shape[0]
+    no_boundaries = np.delete(np.arange(n), boundaries)
+    x0 = points[no_boundaries]
+    boundary_values=points[boundaries]
+    opt = {'maxiter':10000}
+    points_opt = minimize(area_nograd, x0, args=(boundaries, triangles, boundary_values, n), options=opt)
+    points_fin = np.zeros((n,3))
+    no_boundaries = np.delete(np.arange(n), boundaries)
+    points_fin[no_boundaries] = points_opt.reshape(-1,3)
+    points_fin[boundaries] = boundary_values
+    delta = time.time()-t0
+    return get_area(points_fin, triangles), delta, points_fin
+
+def area_nograd(points, boundaries, triangles,boundary_values, n):
+    #print(len(triangles),(triangles[0]),"LENNN")
+    points_fin = np.zeros((n,3))
+    points_fin[boundaries] = boundary_values
+    no_boundaries = np.delete(np.arange(n), boundaries)
+    points_fin[no_boundaries] = points.reshape(-1,3)
+    #print(len(triangles),(triangles[0]),"LENNN")
+    #print(points_fin.shape)
+    return get_area(points_fin, triangles)
+
 
 #
 h=1
 r=1
-nh= 24
+nh= 8
 nv = int((h/r)*nh)
 cyl, tri_cil = (make_shapes.make_cylinder(h,r,nh,nv,plot=True))
 #cyl,tri_cil = make_shapes.make_tube(nh=nh,nv=nv)
@@ -193,7 +216,9 @@ boundaries1 = np.argwhere(cyl[:,2]==0).flatten()
 boundaries2 = np.argwhere(cyl[:,2]==h).flatten()
 boundaries = np.hstack((boundaries1, boundaries2)).flatten()
 tri, tri_sg =get_triangles(cyl, tri_cil)
-points, areas, idx =opt_surface(cyl, tri, boundaries)
+
+
+points, areas, idx, t =opt_surface(cyl, tri, boundaries)
 fig = plt.figure()
 ax = fig.add_subplot()
 ax.plot(np.arange(areas.shape[0]), areas)
