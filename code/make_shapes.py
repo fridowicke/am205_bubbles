@@ -3,69 +3,30 @@ import numpy.linalg as la
 from math import *
 import matplotlib.pyplot as plt
 from scipy.spatial import Delaunay
-import dim_red
 
 
-def get_sphere(plot=True):
-    sphere = [x.split(' ') for x in open(f"./Test_sphere-2.obj").readlines()]
-    faces    = []
-    vertices = []
-
-    for element in sphere:
-        #print(element)
-        if element[0] =='f':
-            vals = [x for x in element[1:4]]
-            ap=[]
-            for v in vals:
-                if v[1]=='/':
-                    ap.append(int(float(v[0])))
-                elif v[2]=='/':
-                    ap.append(int(float(v[0:2])))
-                elif v[3]=='/':
-                    ap.append(int(float(v[0:3])))
-            faces.append(ap)
-        if element[0] == 'v':
-            vertices.append([float(x)-48 for x in element[1:4]])
-    print(faces)
-    vertices=np.array(vertices)
-    if plot:
-        vis_triang_3d(vf)
-        fig = plt.figure(figsize=plt.figaspect(0.5))
-        ax = fig.add_subplot(1, 2, 1, projection='3d')
-        ax.plot(vertices[:,0],vertices[:,1],vertices[:,2])
-        plt.show()
 
 def make_cylinder(h,r,nh=5,nv=5, plot=False):
 
     #maybe triangles appear more than once
     X1 = np.linspace(0, 2*pi*((nh-1)/(nh)),nh)
-    #X1 = np.linspace(0, 2*pi,nh)
     X2 = np.linspace(0,h,nv)
     circles = np.array([[(r*cos(x1), r*sin(x1), x2) for x1 in X1]for x2 in X2])
     points=np.vstack(circles)
-    #X_r=dim_red.axis_dr(points, points[:,-1], plot=plot)
     simplices=[]
     n=nh*nv
     for idx in range(n):
         if idx+nh<n:
             if idx%nh==0:
                 simplices.append([idx, idx+1, idx+nh])
-                #vis_triang_3d(points, simplices)
                 simplices.append([idx, idx+2*nh-1, idx+nh-1])
-                #vis_triang_3d(points, simplices)
             elif idx%nh==nh-1:
                 simplices.append([idx-nh+1, idx+1, idx+nh])
-                #vis_triang_3d(points, simplices)
                 simplices.append([idx+nh-1, idx+nh, idx])
-                #vis_triang_3d(points, simplices)
             else:
                 simplices.append([idx, idx+1, idx+nh])
-                #vis_triang_3d(points, simplices)
                 simplices.append([idx, idx+nh-1, idx+nh])
-                #vis_triang_3d(points, simplices)
     simplices=np.array(simplices)
-    if plot:
-        vis_triang_3d(points, simplices)
     return points, simplices
 
 
@@ -244,10 +205,6 @@ def mesh(nh=10,nv=5, width=1, height=0.5, plot=False):
             ax.plot(v[[0,2],0],v[[0,2],1], color='blue', linewidth=1)
         plt.show()
 
-
-
-
-
 def vis_triang_3d(points, simplices):
 
     #Getting the points
@@ -264,29 +221,5 @@ def vis_triang_3d(points, simplices):
         ax.plot(v[0:2,0],v[0:2,1],v[0:2,2], color='orange', linewidth=1)
         ax.plot(v[1:3,0],v[1:3,1],v[1:3,2], color='green', linewidth=1)
         ax.plot(v[[0,2],0],v[[0,2],1],v[[0,2],2], color='blue', linewidth=1)
-        #ax.plot(v[:,-1:-2:-1],v[:,-1:-2:-1],v[:,-1:-2:-1], color='orange', linewidth=1)
-    #ax.set_xlim3d(-1, 1)
-    #ax.set_ylim3d(-1, 1)
-    #ax.set_zlim3d(-1, 1)
-    plt.show()
-
-def vis_tr_3d(points, simplices):
-
-    #Getting the points
-    vertices=[]
-    for idx in range(len(simplices)):
-        for idx2 in simplices[idx]:
-            vertices.append(points[np.array([idx2[0],idx2[1],idx])])
-
-    #Create figure
-    fig = plt.figure(figsize=plt.figaspect(0.5))
-    ax = fig.add_subplot(1, 2, 1, projection='3d')
-
-    #Plot vertices
-    for v in vertices:
-        ax.plot(v[0:2,0],v[0:2,1],v[0:2,2], color='orange', linewidth=1)
-        ax.plot(v[1:3,0],v[1:3,1],v[1:3,2], color='green', linewidth=1)
-        ax.plot(v[[0,2],0],v[[0,2],1],v[[0,2],2], color='blue', linewidth=1)
-        #ax.plot(v[:,-1:-2:-1],v[:,-1:-2:-1],v[:,-1:-2:-1], color='orange', linewidth=1)
 
     plt.show()
