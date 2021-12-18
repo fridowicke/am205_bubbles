@@ -81,11 +81,13 @@ def opt_surface(points, triangles, boundary_points, eta =0.0001, plot_boundaries
         #Computing the Gradients
         grads=compute_gradients(points, triangles)
         #Reducing the size of the gradient and inverting
+        gradient_values.append(grads[::3].std())
         #implement line search
+        #grads = -grads*eta*(10/(la.norm(grads.mean(axis=0))))
         eta = minimize(grad_area, 0, args=(grads, points, triangles)).x[0]
         grads= eta*grads
         grads[boundary_points]=0
-        gradient_values.append(la.norm(grads.mean(axis=0)))
+        gradient_values.append(grads[::3].std())
 
         #Plotting
         if idx%15==0:
@@ -94,9 +96,9 @@ def opt_surface(points, triangles, boundary_points, eta =0.0001, plot_boundaries
             fig = plt.figure()
             ax = fig.add_subplot(projection='3d')
             ax.scatter(points[:,0],points[:,1],points[:,2])
-            #ax.set_xlim3d(-1, 1)
-            #ax.set_ylim3d(-1, 1)
-            #ax.set_zlim3d(-1, 1)
+            ax.set_xlim3d(-1, 1)
+            ax.set_ylim3d(-1, 1)
+            ax.set_zlim3d(-1, 1)
 
             if plot_opt:
                 X1 = np.linspace(0, 2*pi*((nh-1)/(nh)),nh)
@@ -187,25 +189,79 @@ def get_area_boundaries(points, triangles, boundaries, boundarie_values):
     #glob+=1
     return get_area(points, triangles)
 
+#order the triangles
+def order_triangle(triangles, boundaries):
+    #Empty list of ordered triangles
+    ordered_triangles=[]
+    #Loop over the triangle "midpoints"
+    for idx_tr, tr in enumerate(triangles):
+
+        #Exclude boundary points
+        if not(idx_tr in boundaries):
+
+            #initialize the first element
+            ordered_tr = [tr[0]]
+            prevpoint= tr[0][0]
+            nextpoint= tr[0][1]
+            print(tr)
+
+            #look for the next tuple and append it
+            while len(ordered_tr)<len(tr):
+                print(prevpoint, nextpoint)
+                idx = 0
+                while (not nextpoint in tr[idx]) or (prevpoint in tr[idx]) :
+                    idx+=1
+                ordered_tr.append(tr[idx])
+                idx_next=0
+                if tr[idx][0]==nextpoint:
+                    idx_next=1
+                prevpoint = nextpoint
+                nextpoint = tr[idx][idx_next]
+            ordered_triangles.append(ordered_tr)
+
+        #append empty list for Boundary points
+        else:
+            ordered_triangles.append([])
+    return ordered_triangles
+
+def opt(points, triangles, boundary_points, eta =0.0001, plot_boundaries=False, plot_opt=True, plot_gradient=True):
+
+
+
+    for idx in range(1000):
+        print(idx, get_area(points, triangles))
+        grads=compute_gradients(points, triangles)
+        #Reducing the size of the gradient and inverting
+        #implement line search
+        print(np.max([la.norm(grad) for grad in grads]))
+        grads = -grads*eta*(10/np.max([la.norm(grad) for grad in grads]))
+        #eta = minimize(grad_area, 0, args=(grads, points, triangles)).x[0]
+        #grads= eta*grads
+        grads[boundary_points]=0
+        #Updating the points
+        points=points+grads
+
+    return points
 
 #glob=0
-h=0.3
+h=1
 r=1
-nh= 32
-nv = 8
-#cyl, tri_cil = (make_shapes.make_cylinder(h,r,nh,nv,plot=True))
-cyl,tri_cil = make_shapes.make_tube(nh=nh,nv=nv)
+nh= 34
+nv = 6
+cyl, tri_cil = (make_shapes.make_cylinder(h,r,nh,nv,plot=True))
+#cyl,tri_cil = make_shapes.make_tube(nh=nh,nv=nv)
 #cyl, tri_cil = make_shapes.make_fo(plot=False)
 boundaries1 = np.argwhere(cyl[:,2]==0).flatten()
 boundaries2 = np.argwhere(cyl[:,2]==h).flatten()
 boundaries = np.hstack((boundaries1, boundaries2)).flatten()
 boundarie_values=cyl[boundaries]
 tri, tri_sg =get_triangles(cyl, tri_cil)
+tri = order_triangle(tri, boundaries)
 # LEON: Here the optimization takes place
 #triangles_opt=minimize(get_area_boundaries, cyl, args=(tri, boundaries, boundarie_values), jac=get_grad)
 #triangles_opt=minimize(get_area_boundaries, cyl, args=(tri, boundaries, boundarie_values))
 
-
+#cylopt=opt(cyl, tri, boundaries)
 cylopt=opt_surface(cyl, tri, boundaries)
 #compute_gradients(cyl, triangles)
 #print(get_area(cyl, tri),"SURFACE AREA")
