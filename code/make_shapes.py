@@ -59,31 +59,31 @@ def make_cylinder(h,r,nh=31,nv=41, plot=False):
 def make_tube(bottom_shape='circle', bottom_size=1, top_shape='square', top_size=1, nh=32,nv=8,plot=True):
     bottom=make_shape(bottom_shape, bottom_size, nh)
     top=make_shape(top_shape, top_size, nh)
+    print(bottom, top)
     top[:,2]=1
-    points = np.zeros((nh,nv,3))
+    points = np.zeros((nh*nv,3))
     for idx1 in range(nh):
         b=bottom[idx1]
         t=top[idx1]
         for idx2 in range(nv):
-            points[idx1,idx2]=b+(idx2/nv)*(t-b)
-    points_final=[]
+            print(idx1,idx2)
+            points[idx1*nv+idx2]=b+(idx2/nv)*(t-b)
+    X_r=dim_red.axis_dr(points, points[:,-1], plot=True)
+    points_final=np.zeros_like(points)
     for idx1 in range(nv):
-        for idx2 in range(nh):
-            points_final.append(list(points[idx2,idx1]))
-
-    points = np.array(points_final)
-    print(points.shape)
+        idc=np.array([idx1+x*nv for x in range(nh)])
+        points_final[idx1*nh:(idx1+1)*nh]=points[idc]
+    points=points_final
     simplices=[]
-    n = nh*nv
+    n=nh*nv
     for idx in range(n):
         if idx+nh<n:
             simplices.append([idx, idx+1, idx+nh])
             simplices.append([idx, idx+nh-1, idx+nh])
     simplices=np.array(simplices)
-    simplices=np.array(simplices)
     if plot:
         vis_triang_3d(points, simplices)
-    return points, simplices
+    return points, Delaunay(X_r).simplices
 
 
 def make_shape(shape, size, n):
