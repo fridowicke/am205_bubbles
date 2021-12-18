@@ -48,8 +48,21 @@ def make_cylinder(h,r,nh=5,nv=5, plot=False):
     n=nh*nv
     for idx in range(n):
         if idx+nh<n:
-            simplices.append([idx, idx+1, idx+nh])
-            simplices.append([idx, idx+nh-1, idx+nh])
+            if idx%nh==0:
+                simplices.append([idx, idx+1, idx+nh])
+                #vis_triang_3d(points, simplices)
+                simplices.append([idx, idx+2*nh-1, idx+nh-1])
+                #vis_triang_3d(points, simplices)
+            elif idx%nh==nh-1:
+                simplices.append([idx-nh+1, idx+1, idx+nh])
+                #vis_triang_3d(points, simplices)
+                simplices.append([idx+nh-1, idx+nh, idx])
+                #vis_triang_3d(points, simplices)
+            else:
+                simplices.append([idx, idx+1, idx+nh])
+                #vis_triang_3d(points, simplices)
+                simplices.append([idx, idx+nh-1, idx+nh])
+                #vis_triang_3d(points, simplices)
     simplices=np.array(simplices)
     if plot:
         vis_triang_3d(points, simplices)

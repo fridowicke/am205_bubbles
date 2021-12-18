@@ -84,13 +84,16 @@ def opt_surface(points, triangles, boundary_points, eta =0.0001, plot_boundaries
         gradient_values.append(grads[::3].std())
         #implement line search
         #grads = -grads*eta*(10/(la.norm(grads.mean(axis=0))))
+        print(f"before{get_area(points, triangles)}")
+        grads[boundary_points]=0
         eta = minimize(grad_area, 0, args=(grads, points, triangles)).x[0]
         grads= eta*grads
-        grads[boundary_points]=0
+        #grads = grads*eta*(10/(np.max([la.norm(grad) for grad in grads])))
+        #doublecheck if boundary conditions are enforced all along
         gradient_values.append(grads[::3].std())
 
         #Plotting
-        if idx%15==0:
+        if idx%10==0:
             print(idx,grads)
             make_shapes.vis_tr_3d(points,triangles)
             fig = plt.figure()
@@ -128,6 +131,7 @@ def opt_surface(points, triangles, boundary_points, eta =0.0001, plot_boundaries
 
         #Updating the points
         points=points+grads
+        print(f"after{get_area(points, triangles)}")
 
     return points
 
@@ -244,9 +248,9 @@ def opt(points, triangles, boundary_points, eta =0.0001, plot_boundaries=False, 
     return points
 
 #glob=0
-h=1
+h=0.8
 r=1
-nh= 34
+nh= 50
 nv = 6
 cyl, tri_cil = (make_shapes.make_cylinder(h,r,nh,nv,plot=True))
 #cyl,tri_cil = make_shapes.make_tube(nh=nh,nv=nv)
@@ -256,7 +260,7 @@ boundaries2 = np.argwhere(cyl[:,2]==h).flatten()
 boundaries = np.hstack((boundaries1, boundaries2)).flatten()
 boundarie_values=cyl[boundaries]
 tri, tri_sg =get_triangles(cyl, tri_cil)
-tri = order_triangle(tri, boundaries)
+#tri = order_triangle(tri, boundaries)
 # LEON: Here the optimization takes place
 #triangles_opt=minimize(get_area_boundaries, cyl, args=(tri, boundaries, boundarie_values), jac=get_grad)
 #triangles_opt=minimize(get_area_boundaries, cyl, args=(tri, boundaries, boundarie_values))
