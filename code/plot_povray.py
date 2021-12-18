@@ -8,6 +8,6 @@ from scipy.spatial import Delaunay
 cyl, simplices =(make_shapes.make_cylinder(1,1, nh=30, nv=30))
 
 #Visualization
-make_shapes.vis_triang_3d(simplices, cyl)
-print(cyl.shape)
-print(simplices)
+#make_shapes.vis_triang_3d(simplices, cyl)
+#print(cyl.shape)
+#sprint(simplices)

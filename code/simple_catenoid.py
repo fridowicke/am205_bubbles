@@ -7,31 +7,32 @@ from scipy.optimize import minimize
 import matplotlib.pyplot as plt
 import numpy as np
 
-#Initialize the points
-x1=0
-y1=1
-x2=1
-y2=1
-a_init=0.5
-b_init=0.5
 
-#function for the surface
-def f(x):
-    return a*np.cosh((x-b)/a)
+def get_curve(X1=[0,1],X2=[1,1],a_init=0.5, b_init=0.5, X=np.linspace(0,1,1000), plot=False):
+    #Initialize the points
+    x1, y1 = X1
+    x2, y2 = X2
 
-#Error function
-def error(y, *args):
-    print(args)
-    a,b=y
-    x1,y1,x2,y2=args
-    return abs(y1-a*cosh((x1-b)/a))+abs(y2-a*cosh((x2-b)/a))
+    #function for the surface
+    def f(x):
+        return a*np.cosh((x-b)/a)
 
-#Find the values a and b
-a,b=minimize(error,[a_init,b_init],(x1,y1,x2,y2)).x
-print(error([a,b],*(x1,y1,x2,y2)))
+    #Error function
+    def error(y, *args):
+        print(args)
+        a,b=y
+        x1,y1,x2,y2=args
+        return abs(y1-a*cosh((x1-b)/a))+abs(y2-a*cosh((x2-b)/a))
 
-#Plotting the resulting Curve
-X=np.linspace(0,1,1000)
-Y=f(X)
-plt.plot(X,Y)
-plt.show()
+    #Find the values a and b
+    a,b=minimize(error,[a_init,b_init],(x1,y1,x2,y2)).x
+    #print(error([a,b],*(x1,y1,x2,y2)))
+
+    #Plotting the resulting Curve
+    Y=f(X)
+
+    if plot:
+        plt.plot(X,Y)
+        plt.show()
+
+    return Y

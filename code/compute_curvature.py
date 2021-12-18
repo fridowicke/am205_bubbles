@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 import numpy.linalg as la
 from scipy.optimize import minimize
 import plot_povray
+from simple_catenoid import get_curve
 
 #Takes input with 3 points and calculates the angle
 def angle(X):
@@ -18,21 +19,33 @@ def angle(X):
 
 #Get the Triangles that a given vertex is connected to
 def get_triangles(points, vertices):
-    triangles = [[] for idx in range(points.shape[0])]
+    tri, tri_sg = [[] for idx in range(points.shape[0])], [[] for idx in range(points.shape[0])]
     for x,y,z in vertices:
         if x==min([x,y,z]):
-            triangles[x].append([y,z])
+            tri_sg[x].append([y,z])
         elif y==min([x,y,z]):
-            triangles[y].append([x,z])
+            tri_sg[y].append([x,z])
         else:
-            triangles[z].append([x,y])
-    return triangles
+            tri_sg[z].append([x,y])
+        tri[x].append([y,z])
+        tri[y].append([x,z])
+        tri[z].append([x,y])
+    return tri, tri_sg
+
+def get_grad(points, triangles, boundaries, boundarie_values):
+    points.reshape([3,-1])
+    grad = compute_gradients(points, triangles)
+    grad[boundaries] = 0
+    return grad.flatten()
 
 #Compute the gradients
 def compute_gradients(points, triangles):
+    #Ordering?
+    #There should be some sign information here
     def Mean_curve(point):
         Gradient_A = np.zeros(3)
         p = points[point]
+        print(point, len(triangles[point]))
         for q,r in triangles[point]: #number of adjacent triangles
             q, r = points[q], points[r]
             alpha, beta = angle([p,q,r]), angle([p,r,q])
@@ -40,16 +53,18 @@ def compute_gradients(points, triangles):
                 Gradient_A += 1/2*(cot(alpha)*(p-q)+cot(beta)*(p-r))
             else:
                 print("x")
+        #print(Gradient_A)
         return Gradient_A
 
     gradients = np.zeros_like(points)
     for idx in range(points.shape[0]):
+        #print(gradients[idx],Mean_curve(idx))
         gradients[idx] = Mean_curve(idx)
         #print(Mean_curve(idx))
     return gradients
 
 #Optimize the surface
-def opt_surface(points, triangles, boundary_points, epsilon = 0.01, plot_boundaries=False):
+def opt_surface(points, triangles, boundary_points, eta =0.0001, plot_boundaries=False, plot_opt=True, plot_gradient=True):
 
     #Plot the Boundary conditions
     if plot_boundaries:
@@ -58,40 +73,64 @@ def opt_surface(points, triangles, boundary_points, epsilon = 0.01, plot_boundar
         plt.suptitle("Boundary points")
         ax.scatter(points[boundary_points][:,0],points[boundary_points][:,1],points[boundary_points][:,2])
         plt.show()
-
-    for idx in range(30):
-        print(idx)
+    areas=[]
+    gradient_values=[]
+    for idx in range(1000000):
+        areas.append(get_area(points, triangles))
+        print(idx, get_area(points, triangles))
         #Computing the Gradients
         grads=compute_gradients(points, triangles)
-        #Removing too large gradients (not sure if that makes sense)
-        #norms = np.array([la.norm(grad) for grad in grads])
-        #grads[np.argwhere(norms>norms.mean())]=0
-
         #Reducing the size of the gradient and inverting
-        grads= -epsilon*grads*(10/np.max(np.abs(grads)))
-        print(grads)
-        #for idx1 in range(grads.shape[0]):
-            #print(la.norm(grads[idx])*np.array([-points[idx,0],-points[idx,1],0]))
-        #    grads[idx1] = la.norm(grads[idx1])*np.array([-points[idx1,0],-points[idx1,1],0])
-        #Enforcing the boundary conditions
+        #implement line search
+        eta = minimize(grad_area, 0, args=(grads, points, triangles)).x[0]
+        grads= eta*grads
         grads[boundary_points]=0
+        gradient_values.append(la.norm(grads.mean(axis=0)))
 
         #Plotting
-        if idx%100==200:
-            #make_shapes.vis_triang_3d(tri_cil, points)
+        if idx%15==0:
+            print(idx,grads)
+            make_shapes.vis_tr_3d(points,triangles)
             fig = plt.figure()
             ax = fig.add_subplot(projection='3d')
             ax.scatter(points[:,0],points[:,1],points[:,2])
+            #ax.set_xlim3d(-1, 1)
+            #ax.set_ylim3d(-1, 1)
+            #ax.set_zlim3d(-1, 1)
+
+            if plot_opt:
+                X1 = np.linspace(0, 2*pi*((nh-1)/(nh)),nh)
+                X2 = np.linspace(0,h,nv)
+                R = get_curve([0,r],[h,r],X=np.linspace(0,h,nv))
+                opt=[]
+                for x1 in X1:
+                    for idx1 in range(nv):
+                        print("R",R[idx1])
+                        opt.append((R[idx1]*cos(x1), R[idx1]*sin(x1), X2[idx1]))
+                opt=np.array(opt)
+                ax.scatter(opt[:,0],opt[:,1],opt[:,2], color='green')
+
             plt.show()
-            #fig = plt.figure()
-            #ax = fig.gca(projection='3d')
-            #ax.quiver(points[:,0],points[:,1],points[:,2],30*grads[:,0],30*grads[:,1],30*grads[:,2])
-            #plt.show()
+
+            Y = np.array(areas)
+            Z = np.array(gradient_values)
+            X = np.arange(len(areas))
+            plt.plot(X,Y)
+            #plt.plot(X,Z)
+            plt.show()
+            if plot_gradient:
+                fig = plt.figure()
+                ax = fig.gca(projection='3d')
+                ax.quiver(points[:,0],points[:,1],points[:,2],grads[:,0],grads[:,1],grads[:,2])
+                plt.show()
 
         #Updating the points
         points=points+grads
 
     return points
+
+def grad_area(epsilon, gradient, points, triangles):
+    return get_area(points+epsilon*gradient, triangles)
 
 def get_area(points, triangles):
     area = np.zeros(len(triangles))
@@ -126,12 +165,18 @@ def get_area(points, triangles):
             p2 = z-x
             u = np.cross(p1,p2)
             area.append(la.norm(u)/2)
-    print(np.sum(np.array(area)))
-    return np.sum(np.array(area))
+    print(np.sum(np.array(area))/3)
+    if False:#np.sum(np.array(area))/3<5.9:
+        fig = plt.figure()
+        ax = fig.add_subplot(projection='3d')
+        ax.scatter(points[:,0],points[:,1],points[:,2])
+        plt.show()
+    return np.sum(np.array(area)/3)
 
 def get_area_boundaries(points, triangles, boundaries, boundarie_values):
     points=points.reshape([-1,3])
     points[boundaries] = boundarie_values
+
     #LEON HERE:
     #plot_povray.function(whatever)
     #points: nx3 of the points
@@ -139,23 +184,30 @@ def get_area_boundaries(points, triangles, boundaries, boundarie_values):
     #boundarie_values: boundary points
     #boundaries: indices of the boundary points
     #glob: identifier
-    glob+=1
+    #glob+=1
     return get_area(points, triangles)
 
 
-glob=0
-cyl, tri_cil = (make_shapes.make_cylinder(1,1))
+#glob=0
+h=0.3
+r=1
+nh= 32
+nv = 8
+#cyl, tri_cil = (make_shapes.make_cylinder(h,r,nh,nv,plot=True))
+cyl,tri_cil = make_shapes.make_tube(nh=nh,nv=nv)
+#cyl, tri_cil = make_shapes.make_fo(plot=False)
 boundaries1 = np.argwhere(cyl[:,2]==0).flatten()
-boundaries2 = np.argwhere(cyl[:,2]==1).flatten()
+boundaries2 = np.argwhere(cyl[:,2]==h).flatten()
 boundaries = np.hstack((boundaries1, boundaries2)).flatten()
 boundarie_values=cyl[boundaries]
-triangles =get_triangles(cyl, tri_cil)
+tri, tri_sg =get_triangles(cyl, tri_cil)
 # LEON: Here the optimization takes place
-triangles_opt=minimize(get_area_boundaries, cyl, args=(triangles, boundaries, boundarie_values))
+#triangles_opt=minimize(get_area_boundaries, cyl, args=(tri, boundaries, boundarie_values), jac=get_grad)
+#triangles_opt=minimize(get_area_boundaries, cyl, args=(tri, boundaries, boundarie_values))
 
 
+cylopt=opt_surface(cyl, tri, boundaries)
 #compute_gradients(cyl, triangles)
-#print(get_area(cyl, triangles),"SURFACE AREA")
+#print(get_area(cyl, tri),"SURFACE AREA")
 #gradients = compute_gradients(cyl, tri_cil)
-#make_shapes.vis_triang_3d(tri_cil, cyl)
-#opt = opt_surface(cyl, triangles, boundaries)
+#make_shapes.vis_triang_3d(tri_cil, cylopt = opt_surface(cyl, tri, boundaries)
